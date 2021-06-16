@@ -13,7 +13,7 @@ services:
   broadsea-webtools:
     image: ohdsi/broadsea-webtools
     ports:
-      - "8080:8080"
+      - "8080:8091"
     volumes:
      - .:/tmp/drivers/:ro
      - ./config-local.js:/usr/local/tomcat/webapps/atlas/js/config-local.js:ro
@@ -22,18 +22,47 @@ services:
       - env=webapi-postgresql
       - security_origin=*
       - datasource_driverClassName=org.postgresql.Driver
-      - datasource_url=jdbc:postgresql://192.168.99.100:5432/secret-database-name
+      - datasource_url=jdbc:postgresql://db:5432/ohdsi
       - datasource.cdm.schema=cdm
       - datasource.ohdsi.schema=ohdsi
-      - datasource_username=secret-user-name
-      - datasource_password=secret-user-password
+      - datasource_username=${POSTGRES_USER}
+      - datasource_password=${POSTGRES_PASSWORD}
       - spring.jpa.properties.hibernate.default_schema=ohdsi
       - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
       - spring.batch.repository.tableprefix=ohdsi.BATCH_
       - flyway_datasource_driverClassName=org.postgresql.Driver
-      - flyway_datasource_url=jdbc:postgresql://192.168.99.100:5432/secret-database-name
+      - flyway_datasource_url=jdbc:postgresql://db:5432/ohdsi
       - flyway_schemas=ohdsi
       - flyway.placeholders.ohdsiSchema=ohdsi
-      - flyway_datasource_username=secret-user-name
-      - flyway_datasource_password=secret-user-password
+      - flyway_datasource_username=${POSTGRES_USER}
+      - flyway_datasource_password=${POSTGRES_PASSWORD}
       - flyway.locations=classpath:db/migration/postgresql
+    depends_on:
+      - db
+    networks:
+      - db
+    restart: always
+
+  db:
+    image: postgres:12.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=ohdsi
+    volumes:
+      - db_data:/var/lib/postgresql/data/
+    networks:
+      - db
+    restart: always
+    ports:
+      - "5432:5432"
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  db:
+    driver: bridge
